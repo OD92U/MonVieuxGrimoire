@@ -2,6 +2,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 
+const booksRoutes = require('./routes/books');
+const userRoutes = require('./routes/user');
+
 mongoose.connect('mongodb+srv://admin:R3Kv9ond0w2VWCgK@monvieuxgrimoire.dtxso.mongodb.net/?retryWrites=true&w=majority&appName=MonVieuxGrimoire',
     { useNewUrlParser: true,
       useUnifiedTopology: true })
@@ -18,6 +21,9 @@ app.use((req, res, next) => {
   });
 
 app.use(bodyParser.json());  
+
+app.use('/api/books', booksRoutes);
+app.use('/api/auth', userRoutes)
 
 
 

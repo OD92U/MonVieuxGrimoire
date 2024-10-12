@@ -1,6 +1,7 @@
 const Book = require('../models/Book');
 const fs = require('fs');
 
+
 exports.createBook = (req, res, next) => {
   const bookObject = JSON.parse(req.body.book);
   delete bookObject._id;
@@ -8,6 +9,8 @@ exports.createBook = (req, res, next) => {
   const book = new Book({
       ...bookObject,
       userId: req.auth.userId,
+      ratings: [],
+      averageRating: 0,
       imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
   });
 
@@ -90,19 +93,37 @@ exports.getAllBooks = (req, res, next) => {
 exports.userRateBooks = (req, res, next) => {
   Book.findOne({ _id: req.params.id})
     .then(book => {
-      if ( book.ratings.find(user => user.userId === req.auth.userId) === undefined) {
-        const newRaitings = book.raitings ;
-        newRaitings.push({
-          userId: req.userId,
-          grade: req.rating
-        });
+      console.log(book);
+      if ( book.ratings.find(user => user.userId === req.body.userId) === undefined) {
+        const newRatings = book.ratings;
+        newRatings.push({ userId: req.body.userId, grade: req.body.rating });
         let totalRating = 0;
         for (let i = 0; i < book.ratings.length; i++) {
           totalRating = totalRating + book.ratings[i].grade;
         }
-        Book.updateOne({ _id: req.params.id}, {...book, raitings: newRaitings, averageRaiting: totalRating/book.ratings.length } )
-        .then(() => res.status(200).json({message : 'Livre noté!'}))
+        let newAverage = totalRating/book.ratings.length;
+        book.ratings = newRatings;
+        book.averageRating = newAverage;
+        Book.updateOne({ _id: req.params.id}, book)
+        .then(() => {res.status(200).json(book)})
         .catch(error => res.status(401).json({ error }));
+
       }
     })
-}
+    .catch((error) => {
+      res.status(400).json({ error });
+    });
+};
+
+exports.bestBooks = (req, res, next) => {
+  Book.find().sort({averageRating: -1})
+  .then(books => {
+    let bestBooks = books.slice(0, 3); 
+    res.status(200).json(bestBooks);})
+  .catch(error => {
+    res.status(400).json({
+      error: error
+    });
+  });
+
+};
